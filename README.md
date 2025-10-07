@@ -1,13 +1,17 @@
-# Reproducible builds template
+# Status proxy
 
-This repository is a template for all canister repositories that want to support reproducible builds.
+This canister is design to serve blackhole canister purpose, with slight difference from CycleOps solution.
+
+The differences are:
+1) Canister allows anyone to get the status of a canister by it's ID
+2) Canister caches results and serves cached data. Cache TTL is 6 hours and user cannot make the canister discard the cache before TTL passes
+
+# Reproducible build
 
 The setup ensures that the same source code always generates the same Wasm module, with a consistent module hash.
 This allows users to verify the canisters that they interact with.
 To do so, the user clones the repo, runs the reproducible build process and compares the resulting Wasm module hash
-against the module hash of the deployed canister which is always publicly visible. 
-
-The repository is designed for a single canister per repository.
+against the module hash of the deployed canister which is always publicly visible.
 
 ## How It Works
 
@@ -138,23 +142,20 @@ The generated Wasm module is available in the file `out/out_Linux_x86_64.wasm`.
 Create and install the canister with:
 
 ```
-dfx canister --ic create empty
-dfx canister --ic install empty --wasm out/out_Linux_x86_64.wasm
+dfx canister --ic create status-proxy
+dfx canister --ic install status-proxy --wasm out/out_Linux_x86_64.wasm
 ```
-
-Here, `empty` is a canister alias defined in `dfx.json` of the template repo.
-In practice, it has to be replaced with the canister alias of the real repo. 
 
 ### Reinstall
 
 ```
-dfx canister --ic install empty --wasm out/out_Linux_x86_64.wasm --mode reinstall
+dfx canister --ic install status-proxy --wasm out/out_Linux_x86_64.wasm --mode reinstall
 ```
 
 ### Upgrade
 
 ```
-dfx canister --ic install empty --wasm out/out_Linux_x86_64.wasm --mode upgrade -y
+dfx canister --ic install status-proxy --wasm out/out_Linux_x86_64.wasm --mode upgrade -y
 ```
 
 Note that checking backwards compatibility of the canister's public API or the canister's stable variables is not possible.
@@ -266,43 +267,3 @@ The resulting Wasm module hash will depend on our machine architecture and on th
 If we are on linux and have everything configured correctly we may be able to get the reproducible module hash like this (without docker).
 
 It is recommended that the developer at least tries the `./build.sh` script natively to double-check that everything compiles successfully.
-
-## Base images
-
-The following base images are available in the registry at `ghcr.io/research-ag/motoko-build:<tag>`:
-
-|tag|moc|ic-wasm|
-|---|---|---|
-|0.13.3|0.13.3|0.9.0|
-|0.13.4|0.13.4|0.9.1|
-|0.13.5|0.13.5|0.9.3|
-|0.13.6|0.13.6|0.9.3|
-|0.13.7|0.13.7|0.9.3|
-|0.14.0|0.14.0|0.9.3|
-|0.14.1|0.14.1|0.9.3|
-|0.14.2|0.14.2|0.9.3|
-|0.14.3|0.14.3|0.9.3|
-
-## Test vectors
-
-The following Wasm module hashes are obtained from the empty canister in this template repo.
-
-|branch|module hash linux|module hash mac M1|
-|---|---|---|
-|moc-0.12.0|9da2f91a4a9cb95796d2b738c63e7e08380f2edc816db6748c91fc35695fe68f|2dfaa3c6ea7bc3c5de359b453fa0f8eff353fce958f93f5cf29bcf9f3a7a9b71|
-|moc-0.12.1|471f2bc87d184015fc8bac16a4498ead5d179aaa2a3795f61ed6930dca1d832d|7aead023e5ae47038526780c26ea02b31b90499c1a56326663fa896d5e4eabc7|
-|moc-0.13.0|19c0da72160081fa3db9001af4c35b0767c3868258c36f33b81aee6490e3d7bd|cef0a797b45efa3dfd215a7377feb237d034eb68cbda7fcf215ed4ef98dd4538|
-|moc-0.13.1|177fc526f183fb7e9865c4b18fb6a138170e7ef9f71bec19a99294dc234e4ac0|aea582bbaa9506f569c3efcc63a72b430c2227da6adeca1a2907c7c57b4c9f7a|
-|moc-0.13.2|b3bd66219746c04502070ff81cabe45d6f6c425963da98d9e4510a6cb037892b|89fc3271c8019dbcc590abc04ff9cbb58202714385a1bd2116bd67c836828267|
-|moc-0.13.3|6c17cb5f5f5bb8f2d09452632b76dbf3be0fd76047d0b6f87f6460c7f88812d6|6ee64b25649168acd4adb6f790dcd949e44270703636677fce1a2997d90994f0|
-|moc-0.13.4|4838b9b9fe14b71e816ad83aef9f2ff9b07fd0459949622e08f3a3908958148a|4838b9b9fe14b71e816ad83aef9f2ff9b07fd0459949622e08f3a3908958148a|
-|moc-0.13.5|530ff303b84308e6a447a832922c9a8fc9acaf4cb2fe6aa5296efc578e4a4bc4|530ff303b84308e6a447a832922c9a8fc9acaf4cb2fe6aa5296efc578e4a4bc4|
-|moc-0.13.6|33c7cc22a07d063de2e72114768490365f48edaec9cfc44ee52152fe5e484bc6|33c7cc22a07d063de2e72114768490365f48edaec9cfc44ee52152fe5e484bc6|
-|moc-0.13.7|6d9e15e286fee479f51eeb31f69c8d41c00701b05d797ed16d61ce719f5b9b24|6d9e15e286fee479f51eeb31f69c8d41c00701b05d797ed16d61ce719f5b9b24|
-|moc-0.14.0|1340745f595db5923b6819cb8223880ecb9e7d05b811aec01c46b3c4050a6c77|1340745f595db5923b6819cb8223880ecb9e7d05b811aec01c46b3c4050a6c77|
-|moc-0.14.1|31c9552d1f5c97d211579e71e20e34b0454692c1c80ecc352e7f361423c3024a|31c9552d1f5c97d211579e71e20e34b0454692c1c80ecc352e7f361423c3024a|
-|moc-0.14.2|beee32d5e9a8afaf5152ea1321bf9c291698ec3152abe11f75de31e9ba448cad|beee32d5e9a8afaf5152ea1321bf9c291698ec3152abe11f75de31e9ba448cad|
-|moc-0.14.3|79b15176dc613860f35867828f40e7d6db884c25a5cfd0004f49c3b4b0b3fd5c|79b15176dc613860f35867828f40e7d6db884c25a5cfd0004f49c3b4b0b3fd5c|
-
-We notice that since moc 0.13.4 the hashes for Linux and Mac M1 are identical. 
-

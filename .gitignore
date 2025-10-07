@@ -1,0 +1,7 @@
+.dfx/
+.idea/
+.mops/
+
+build/
+out/*
+!out/.gitkeep

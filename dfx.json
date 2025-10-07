@@ -1,6 +1,6 @@
 {
   "canisters": {
-    "empty": {
+    "status-proxy": {
       "main": "./src/main.mo",
       "type": "motoko"
     }
