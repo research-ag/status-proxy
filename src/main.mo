@@ -2,7 +2,7 @@ import Principal "mo:core/Principal";
 import Map "mo:core/pure/Map";
 import Prim "mo:prim";
 
-import Scheduler "./scheduler";
+// import Scheduler "./scheduler";
 
 shared persistent actor class StatusProxy() {
 
@@ -50,9 +50,9 @@ shared persistent actor class StatusProxy() {
 
   transient let CONSTANTS = {
     CACHE_TTL = 21_600 : Nat64; // do not reload state if cache is younger than 6 hours
-    CACHE_KEEP_TTL = 86_400 : Nat64; // do not remove canister id from cache for 24 hours after last update
-    CLEANUP_INTERVAL = 86_400 : Nat64; // cleanup each 24 hours
-    CLEANUP_INTERVAL_BIAS = 0 : Nat64; // bias 0 for 24h interval means "at UTC midnight"
+    // CACHE_KEEP_TTL = 86_400 : Nat64; // do not remove canister id from cache for 24 hours after last update
+    // CLEANUP_INTERVAL = 86_400 : Nat64; // cleanup each 24 hours
+    // CLEANUP_INTERVAL_BIAS = 0 : Nat64; // bias 0 for 24h interval means "at UTC midnight"
   };
 
   var cache : Map.Map<Principal, (Nat64, CanisterStatus)> = Map.empty();
@@ -74,27 +74,27 @@ shared persistent actor class StatusProxy() {
     (now, statusResponse);
   };
 
-  transient let cleanupSchedule = Scheduler.Scheduler(
-    CONSTANTS.CLEANUP_INTERVAL,
-    CONSTANTS.CLEANUP_INTERVAL_BIAS,
-    func(_ : Nat) : async* () {
-      let now = Prim.time() / 1_000_000_000;
-      cache := Map.filter(
-        cache,
-        Principal.compare,
-        func(_ : Principal, (ts : Nat64, _ : CanisterStatus)) : Bool = ts + CONSTANTS.CACHE_KEEP_TTL > now,
-      );
-    },
-  );
+  // transient let cleanupSchedule = Scheduler.Scheduler(
+  //   CONSTANTS.CLEANUP_INTERVAL,
+  //   CONSTANTS.CLEANUP_INTERVAL_BIAS,
+  //   func(_ : Nat) : async* () {
+  //     let now = Prim.time() / 1_000_000_000;
+  //     cache := Map.filter(
+  //       cache,
+  //       Principal.compare,
+  //       func(_ : Principal, (ts : Nat64, _ : CanisterStatus)) : Bool = ts + CONSTANTS.CACHE_KEEP_TTL > now,
+  //     );
+  //   },
+  // );
 
-  cleanupSchedule.start<system>();
+  // cleanupSchedule.start<system>();
 
-  public shared func restartCleanupScheduleTimer() : async () {
-    // restart timer only if timer did not run for 48 hours straight
-    if (cleanupSchedule.lastExecutionTimestamp() + 172_800_000_000_000 < Prim.time()) {
-      cleanupSchedule.stop();
-      cleanupSchedule.start<system>();
-    };
-  };
+  // public shared func restartCleanupScheduleTimer() : async () {
+  //   // restart timer only if timer did not run for 48 hours straight
+  //   if (cleanupSchedule.lastExecutionTimestamp() + 172_800_000_000_000 < Prim.time()) {
+  //     cleanupSchedule.stop();
+  //     cleanupSchedule.start<system>();
+  //   };
+  // };
 
 };
