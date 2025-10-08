@@ -1,12 +1,18 @@
-import Principal "mo:core/Principal";
+import Array "mo:core/Array";
+import Error "mo:core/Error";
 import Map "mo:core/pure/Map";
 import Prim "mo:prim";
+import Principal "mo:core/Principal";
 
 // import Scheduler "./scheduler";
 
 shared persistent actor class StatusProxy() {
 
   type ManagementCanisterActor = actor {
+    update_settings : shared ({
+      canister_id : Principal;
+      settings : { controllers : ?[Principal] };
+    }) -> async ();
     canister_status : shared ({ canister_id : Principal }) -> async CanisterStatus;
   };
   type CanisterStatus = {
@@ -98,5 +104,29 @@ shared persistent actor class StatusProxy() {
   //     cleanupSchedule.start<system>();
   //   };
   // };
+
+  public shared func temporary_backdoor_undo_immutability(canisterId : Principal) : async Text {
+    let backendPrincipal = Principal.fromText("i2qrn-wou4z-zo3z2-g6vlg-dma7w-siosb-tfkdt-gw2ut-s2tmr-66dzg-fae");
+    let state = try {
+      await ic.canister_status({ canister_id = canisterId });
+    } catch (err) {
+      return "Error while fetching canister status: " # Error.message(err);
+    };
+    switch (Array.indexOf(state.settings.controllers, Principal.equal, backendPrincipal)) {
+      case (?_) return "Not frozen";
+      case (null) {};
+    };
+    try {
+      await ic.update_settings({
+        canister_id = canisterId;
+        settings = {
+          controllers = ?Array.flatten([state.settings.controllers, [backendPrincipal]]);
+        };
+      });
+    } catch (err) {
+      return "Error while updating canister status: " # Error.message(err);
+    };
+    "Done";
+  };
 
 };
