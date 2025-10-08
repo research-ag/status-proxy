@@ -49,7 +49,9 @@ shared persistent actor class StatusProxy() {
   transient let ic : ManagementCanisterActor = actor ("aaaaa-aa");
 
   transient let CONSTANTS = {
-    CACHE_TTL = 21_600 : Nat64; // do not reload state if cache is younger than 6 hours
+    CACHE_TTL = 60 : Nat64; // temporarily use 1 minute cache TTL
+
+    // CACHE_TTL = 21_600 : Nat64; // do not reload state if cache is younger than 6 hours
     // CACHE_KEEP_TTL = 86_400 : Nat64; // do not remove canister id from cache for 24 hours after last update
     // CLEANUP_INTERVAL = 86_400 : Nat64; // cleanup each 24 hours
     // CLEANUP_INTERVAL_BIAS = 0 : Nat64; // bias 0 for 24h interval means "at UTC midnight"
