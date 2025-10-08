@@ -1,5 +1,5 @@
 import Principal "mo:core/Principal";
-import Map "mo:core/Map";
+import Map "mo:core/pure/Map";
 import Prim "mo:prim";
 
 import Scheduler "./scheduler";
@@ -70,7 +70,7 @@ shared persistent actor class StatusProxy() {
       case (null) {};
     };
     let statusResponse = await ic.canister_status({ canister_id = canisterId });
-    Map.add(cache, Principal.compare, canisterId, (now, statusResponse));
+    cache := Map.add(cache, Principal.compare, canisterId, (now, statusResponse));
     (now, statusResponse);
   };
 
