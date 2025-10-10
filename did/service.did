@@ -43,5 +43,6 @@ service : () -> {
   loadState : (principal) -> (nat64, CanisterStatus);
   queryState : (principal) -> (opt record { nat64; CanisterStatus }) query;
   // restartCleanupScheduleTimer : () -> ()
-  temporary_backdoor_undo_immutability : (principal) -> ()
+  makeImmutable : (principal, bool) -> ();
+  undoImmutability : (principal) -> ()
 }

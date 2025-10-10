@@ -6,7 +6,7 @@ import Principal "mo:core/Principal";
 
 // import Scheduler "./scheduler";
 
-shared persistent actor class StatusProxy() {
+shared persistent actor class StatusProxy() = self {
 
   type ManagementCanisterActor = actor {
     update_settings : shared ({
@@ -82,6 +82,76 @@ shared persistent actor class StatusProxy() {
     (now, statusResponse);
   };
 
+  var debugImmutables : Map.Map<Principal, { controllers : [Principal] }> = Map.empty();
+
+  public shared ({ caller }) func makeImmutable(canisterId : Principal, debugMode : Bool) : async () {
+    if (Map.containsKey(debugImmutables, Principal.compare, canisterId)) {
+      throw Error.reject("Already immutable");
+    };
+    let state = try {
+      await ic.canister_status({ canister_id = canisterId });
+    } catch (err) {
+      throw Error.reject("Error while fetching canister status: " # Error.message(err));
+    };
+    if (state.settings.controllers.size() == 1) {
+      throw Error.reject("Already immutable");
+    };
+    switch (Array.indexOf(state.settings.controllers, Principal.equal, caller)) {
+      case (null) throw Error.reject("Permission denied");
+      case (_) {};
+    };
+
+    let selfP = Principal.fromActor(self);
+    try {
+      await ic.update_settings({
+        canister_id = canisterId;
+        settings = { controllers = ?[selfP] };
+      });
+    } catch (err) {
+      throw Error.reject("Error while updating canister settings: " # Error.message(err));
+    };
+    if (debugMode) {
+      debugImmutables := Map.add(
+        debugImmutables,
+        Principal.compare,
+        canisterId,
+        {
+          controllers = Array.filter<Principal>(state.settings.controllers, func(p) = not Principal.equal(p, selfP));
+        },
+      );
+    };
+    // try to remove all permissions in the asset canister
+    try {
+      let assetActor : (
+        actor {
+          take_ownership : shared () -> async ();
+        }
+      ) = actor (Principal.toText(canisterId));
+      await assetActor.take_ownership();
+    } catch (_) {
+      //pass
+    };
+  };
+
+  public shared func undoImmutability(canisterId : Principal) : async () {
+    switch (Map.get(debugImmutables, Principal.compare, canisterId)) {
+      case (null) throw Error.reject("Not immutable in debug mode");
+      case (?{ controllers }) {
+        try {
+          await ic.update_settings({
+            canister_id = canisterId;
+            settings = {
+              controllers = ?Array.flatten([controllers, [Principal.fromActor(self)]]);
+            };
+          });
+        } catch (err) {
+          throw Error.reject("Error while updating canister status: " # Error.message(err));
+        };
+        debugImmutables := Map.remove(debugImmutables, Principal.compare, canisterId);
+      };
+    };
+  };
+
   // transient let cleanupSchedule = Scheduler.Scheduler(
   //   CONSTANTS.CLEANUP_INTERVAL,
   //   CONSTANTS.CLEANUP_INTERVAL_BIAS,
@@ -104,29 +174,5 @@ shared persistent actor class StatusProxy() {
   //     cleanupSchedule.start<system>();
   //   };
   // };
-
-  public shared func temporary_backdoor_undo_immutability(canisterId : Principal) : async Text {
-    let backendPrincipal = Principal.fromText("i2qrn-wou4z-zo3z2-g6vlg-dma7w-siosb-tfkdt-gw2ut-s2tmr-66dzg-fae");
-    let state = try {
-      await ic.canister_status({ canister_id = canisterId });
-    } catch (err) {
-      return "Error while fetching canister status: " # Error.message(err);
-    };
-    switch (Array.indexOf(state.settings.controllers, Principal.equal, backendPrincipal)) {
-      case (?_) return "Not frozen";
-      case (null) {};
-    };
-    try {
-      await ic.update_settings({
-        canister_id = canisterId;
-        settings = {
-          controllers = ?Array.flatten([state.settings.controllers, [backendPrincipal]]);
-        };
-      });
-    } catch (err) {
-      return "Error while updating canister status: " # Error.message(err);
-    };
-    "Done";
-  };
 
 };
